@@ -9,13 +9,17 @@ import os
 # Gemini API key setup
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
+# -------------------- Chunking Functions --------------------
+
 def chunk_pdf(file_path, chunk_size=500):
     chunks = []
     with open(file_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
         text = ""
         for page in reader.pages:
-            text += page.extract_text()
+            page_text = page.extract_text()
+            if page_text:  # Avoid None pages
+                text += page_text
 
     for i in range(0, len(text), chunk_size):
         chunks.append(text[i:i+chunk_size])
@@ -38,10 +42,16 @@ def chunk_notebook(file_path):
                 chunks.append(cell.source)
     return chunks
 
+# -------------------- Embedding and Retrieval --------------------
+
 def get_embedding(text):
     model = genai.GenerativeModel('embedding-001')
-    response = model.embed_content([{"text": text}], task_type="retrieval_document")
-    return response['embedding']
+    try:
+        response = model.embed_content([{"text": text}], task_type="retrieval_document")
+        return response['embedding']
+    except Exception as e:
+        print(f"Embedding Error: {e}")
+        return np.zeros((768,))  # Safe fallback
 
 def find_best_chunk(chunks, user_question):
     question_embedding = get_embedding(user_question)
@@ -58,9 +68,38 @@ def find_best_chunk(chunks, user_question):
 
     return best_chunk
 
+# -------------------- Gemini Conversational Answer --------------------
+
 def ask_gemini(user_question, context_chunk):
-    prompt = f"Context: {context_chunk}\n\nQuestion: {user_question}\n\nAnswer:"
+    prompt = f"""
+You are a helpful AI assistant.
+
+You will receive a context from a document. Answer the user's question in a friendly, conversational tone.
+
+Instructions:
+- Summarize when needed.
+- Provide step-by-step explanations.
+- Compare items where possible.
+- Create tables or bullet points when it improves clarity.
+- NEVER copy or repeat the context directly.
+- If you don’t have enough information, say: "I don't have enough information to answer that."
+
+Context:
+{context_chunk}
+
+Question:
+{user_question}
+
+Answer:
+"""
 
     model = genai.GenerativeModel('gemini-2.0-flash')
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        response = model.generate_content(prompt)
+        if response.text:
+            return response.text.strip()
+        else:
+            return "I don’t have enough information to answer that."
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return "I don’t have enough information to answer that."
