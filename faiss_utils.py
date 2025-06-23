@@ -1,17 +1,17 @@
 import faiss
 import numpy as np
-from google.generativeai import GenerativeModel
+from sentence_transformers import SentenceTransformer
 
 # Load embedding model
-embedding_model = GenerativeModel('embedding-001')
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def get_embedding(text):
     try:
-        response = embedding_model.embed_content([{"text": text}], task_type="retrieval_document")
-        return np.array(response['embedding'], dtype='float32')
+        embedding = embedding_model.encode(text)
+        return np.array(embedding, dtype='float32')
     except Exception as e:
         print(f"Embedding Error: {e}")
-        return np.zeros((768,), dtype='float32')
+        return np.zeros((384,), dtype='float32')  # 384 is embedding size for MiniLM
 
 def build_faiss_index(chunks):
     embeddings = []
