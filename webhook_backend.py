@@ -6,6 +6,11 @@ import os
 
 app = Flask(__name__)
 
+# Health Check Route
+@app.route('/', methods=['GET'])
+def home():
+    return 'Service is running!', 200
+
 # Load CSV file
 csv_df = pd.read_csv('dataset.csv')  # Your file
 
@@ -53,4 +58,3 @@ def webhook():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
