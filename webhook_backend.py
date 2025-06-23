@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import pandas as pd
 import PyPDF2
 import nbformat
+import os
 
 app = Flask(__name__)
 
@@ -50,4 +51,6 @@ def webhook():
     return jsonify({'fulfillmentText': response_text})
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
