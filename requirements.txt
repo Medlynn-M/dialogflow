@@ -1,5 +1,5 @@
 Flask==3.0.3
-pandas==2.2.2
+pandas
 PyPDF2==3.0.1
 nbformat==5.9.2
 google-generativeai==0.3.2
